@@ -2,7 +2,7 @@
 
 (defvar rrruby:history nil)
 
-(defun rrruby:replace-region (start end expr)
+(defun replace-region-by-ruby (start end expr)
   (interactive (list (region-beginning) (region-end)
                      (read-string "ruby: "
                                   (or (nth 0 rrruby:history)
@@ -13,3 +13,5 @@
   (let ((region (buffer-substring start end)))
     (call-process-region start end "ruby" t t nil "-e"
                          (format "%s=%%q[%s]; %s" rrruby:region-variable region expr))))
+
+(provide 'replace-region-by-ruby)
