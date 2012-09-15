@@ -1,4 +1,10 @@
-(defvar rrruby:region-variable "R")
+;; replace-region-by-ruby.el
+
+(defvar rrruby:ruby-command "ruby"
+  "command or path to Ruby interpreter")
+
+(defvar rrruby:region-variable "R"
+  "variable name which region assigned as an instance of String in Ruby")
 
 (defvar rrruby:history nil)
 
@@ -8,12 +14,12 @@
                                   (or (nth 0 rrruby:history)
                                       (format "puts %s." rrruby:region-variable))
                                   'rrruby:history)))
-  (unless (executable-find "ruby")
+  (unless (executable-find rrruby:ruby-command)
     (error "ruby command not found"))
   (let ((tempfile (make-temp-name (expand-file-name "rrruby" temporary-file-directory)))
         (region (buffer-substring start end))
-        (sha1 (sha1 expr)))
-    (write-region (format "%s=<<%s\n%s\%s\n%s" rrruby:region-variable sha1 region sha1 expr)
+        (eos (make-temp-name "EOS")))
+    (write-region (format "%s=<<%s\n%s\%s\n%s" rrruby:region-variable eos region eos expr)
                   nil tempfile)
     (call-process-region start end "ruby" t t nil tempfile)
     (delete-file tempfile)
