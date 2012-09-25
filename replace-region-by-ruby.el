@@ -8,6 +8,12 @@
 
 (defvar rrruby:history nil)
 
+(defun rrruby:read-string ()
+  (read-string "ruby: "
+               (or (nth 0 rrruby:history)
+                   (format "print %s." rrruby:region-variable))
+               'rrruby:history))
+
 (defun rrruby:escape-for-rubystring (string)
   (let ((replace-pat '(("\\\\" . "\\\\\\\\") ("'" . "\\\\'")))
         (buf-string string))
@@ -15,11 +21,7 @@
       (setq buf-string (replace-regexp-in-string (car pat) (cdr pat) buf-string t)))))
 
 (defun replace-region-by-ruby (start end expr)
-  (interactive (list (region-beginning) (region-end)
-                     (read-string "ruby: "
-                                  (or (nth 0 rrruby:history)
-                                      (format "print %s." rrruby:region-variable))
-                                  'rrruby:history)))
+  (interactive (list (region-beginning) (region-end) (rrruby:read-string)))
   (unless (executable-find rrruby:ruby-command)
     (error "ruby command not found"))
   (let* ((tempfile (make-temp-name (expand-file-name "rrruby" temporary-file-directory)))
