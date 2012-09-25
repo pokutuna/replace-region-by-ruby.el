@@ -19,10 +19,14 @@
   (let* ((tempfile (make-temp-name (expand-file-name "rrruby" temporary-file-directory)))
          (region (buffer-substring start end))
          (eos (format "EOS%s" (sha1 tempfile))))
-    (write-region (format "%s=<<%s\n%s\%s\n%s" rrruby:region-variable eos region eos expr)
+    (write-region (format "%s=<<%s\n%s%s\n%s" rrruby:region-variable eos
+                          (if (string= (substring region -1) "\n")
+                              region
+                            (format "%s\n" region))
+                          eos expr)
                   nil tempfile)
     (call-process-region start end "ruby" t t nil tempfile)
-    (delete-file tempfile)
+    ;; (delete-file tempfile)
     (message "done!")))
 
 (provide 'replace-region-by-ruby)
