@@ -1,41 +1,47 @@
 ;; replace-region-by-ruby.el
 
-(defvar rrruby:ruby-command "ruby"
+(defvar rrbruby:ruby-command "ruby"
   "command or path to Ruby interpreter")
 
-(defvar rrruby:region-variable "R"
+(defvar rrbruby:region-variable "R"
   "variable name which region assigned as an instance of String in Ruby")
 
-(defvar rrruby:history nil)
+(defvar rrbruby:history nil)
 
-(defun rrruby:read-string ()
+(defun rrbruby:read-string ()
   (read-string "ruby: "
-               (or (nth 0 rrruby:history)
-                   (format "print %s." rrruby:region-variable))
-               'rrruby:history))
+               (or (nth 0 rrbruby:history)
+                   (format "print %s." rrbruby:region-variable))
+               'rrbruby:history))
 
-(defun rrruby:escape-for-rubystring (string)
+(defun rrbruby:escape-for-rubystring (string)
   (let ((replace-pat '(("\\\\" . "\\\\\\\\") ("'" . "\\\\'")))
         (buf-string string))
     (dolist (pat replace-pat buf-string)
       (setq buf-string (replace-regexp-in-string (car pat) (cdr pat) buf-string t)))))
 
 (defun replace-region-by-ruby (start end expr)
-  (interactive (list (region-beginning) (region-end) (rrruby:read-string)))
-  (unless (executable-find rrruby:ruby-command)
-    (error "ruby command not found"))
-  (let* ((tempfile (make-temp-name (expand-file-name "rrruby" temporary-file-directory)))
-         (temperr (make-temp-name (expand-file-name "rrruby" temporary-file-directory)))
-         (region (buffer-substring start end))
-         (status))
-    (write-region (format "%s='%s'; %s" rrruby:region-variable
-                          (rrruby:escape-for-rubystring region) expr)
-                  nil tempfile)
-    (setq status (call-process-region start end "ruby" t (list t temperr) nil tempfile))
-    (cond ((not (eq status 0))
-           (insert region)
-           (message "error")
-           ))
+  (interactive (list (region-beginning) (region-end) (rrbruby:read-string)))
+  (unless (executable-find rrbruby:ruby-command) (error "ruby command not found"))
+  (let ((script (make-temp-name (expand-file-name "rrruby" temporary-file-directory)))
+        (stderr (get-buffer-create " *rrbruby:ruby-error*"))
+        (region (buffer-substring start end))
+        (status))
+    (write-region (format "%s='%s'; %s" rrbruby:region-variable
+                          (rrbruby:escape-for-rubystring region) expr) nil script)
+    (with-current-buffer stderr (erase-buffer))
+    (setq status (shell-command-on-region
+                  start end (format "%s %s" rrbruby:ruby-command script) nil t stderr nil))
+    (delete-file script)
+    (if (eq status 0)
+        (message "rrbruby done!")
+      (insert region)
+      (with-current-buffer stderr
+        (goto-char (point-min))
+        (message (buffer-substring (search-forward ":") (point-max))))
+      )
     ))
+
+(defalias 'rrbruby (symbol-function 'replace-region-by-ruby))
 
 (provide 'replace-region-by-ruby)
