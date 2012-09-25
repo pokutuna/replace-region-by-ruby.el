@@ -8,22 +8,24 @@
 
 (defvar rrruby:history nil)
 
+(defun rrruby:escape-for-rubystring (string)
+  (let ((replace-pat '(("\\\\" . "\\\\\\\\") ("'" . "\\\\'")))
+        (buf-string string))
+    (dolist (pat replace-pat buf-string)
+      (setq buf-string (replace-regexp-in-string (car pat) (cdr pat) buf-string t)))))
+
 (defun replace-region-by-ruby (start end expr)
   (interactive (list (region-beginning) (region-end)
                      (read-string "ruby: "
                                   (or (nth 0 rrruby:history)
-                                      (format "puts %s." rrruby:region-variable))
+                                      (format "print %s." rrruby:region-variable))
                                   'rrruby:history)))
   (unless (executable-find rrruby:ruby-command)
     (error "ruby command not found"))
   (let* ((tempfile (make-temp-name (expand-file-name "rrruby" temporary-file-directory)))
-         (region (buffer-substring start end))
-         (eos (format "EOS%s" (sha1 tempfile))))
-    (write-region (format "%s=<<%s\n%s%s\n%s" rrruby:region-variable eos
-                          (if (string= (substring region -1) "\n")
-                              region
-                            (format "%s\n" region))
-                          eos expr)
+         (region (buffer-substring start end)))
+    (write-region (format "%s='%s'\n%s" rrruby:region-variable
+                          (rrruby:escape-for-rubystring region) expr)
                   nil tempfile)
     (call-process-region start end "ruby" t t nil tempfile)
     ;; (delete-file tempfile)
