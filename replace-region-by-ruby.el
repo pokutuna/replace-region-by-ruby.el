@@ -25,12 +25,17 @@
   (unless (executable-find rrruby:ruby-command)
     (error "ruby command not found"))
   (let* ((tempfile (make-temp-name (expand-file-name "rrruby" temporary-file-directory)))
-         (region (buffer-substring start end)))
-    (write-region (format "%s='%s'\n%s" rrruby:region-variable
+         (temperr (make-temp-name (expand-file-name "rrruby" temporary-file-directory)))
+         (region (buffer-substring start end))
+         (status))
+    (write-region (format "%s='%s'; %s" rrruby:region-variable
                           (rrruby:escape-for-rubystring region) expr)
                   nil tempfile)
-    (call-process-region start end "ruby" t t nil tempfile)
-    ;; (delete-file tempfile)
-    (message "done!")))
+    (setq status (call-process-region start end "ruby" t (list t temperr) nil tempfile))
+    (cond ((not (eq status 0))
+           (insert region)
+           (message "error")
+           ))
+    ))
 
 (provide 'replace-region-by-ruby)
