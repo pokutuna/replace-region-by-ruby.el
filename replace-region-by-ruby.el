@@ -36,7 +36,7 @@
       (insert region)
       (let ((errbuf (find-file-noselect stderr)))
         (with-current-buffer errbuf
-            (goto-char (point-min))
+          (goto-char (point-min))
           (message (buffer-substring (search-forward ":") (point-max))))
         (kill-buffer errbuf)))
     (delete-file script)
