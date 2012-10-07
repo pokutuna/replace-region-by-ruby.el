@@ -69,7 +69,7 @@
     (rrbruby:exec-script
      script
      (lambda (out) (delete-region start end) (insert out) (message "rrbruby done!"))
-     (lambda (err) (message (substring err (string-match ":" err)))))
+     (lambda (err) (message (substring err (+ (string-match ":in " err) (length ":in "))))))
     (delete-file script)))
 
 (defalias 'rrbruby (symbol-function 'replace-region-by-ruby))
