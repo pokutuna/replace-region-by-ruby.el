@@ -1,4 +1,12 @@
-;; replace-region-by-ruby.el
+;; replace-region-by-ruby.el --- use ruby script instead of ugly emacs regexp
+;;
+;; Usage:
+;; (require 'replace-region-by-ruby)
+;; make region where you want to replace on
+;; `M-x replace-region-by-ruby` OR `M-x rrbruby`
+;; input code to replace region by ruby output (via e.g. puts/print)
+;;
+;: Repository: https://github.com/pokutuna/replace-region-by-ruby.el
 
 (defvar rrbruby:ruby-command "ruby"
   "command or path to Ruby interpreter")
