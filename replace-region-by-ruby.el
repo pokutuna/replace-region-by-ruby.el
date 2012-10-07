@@ -10,8 +10,7 @@
 
 (defun rrbruby:read-string ()
   (read-string "ruby: "
-               (or (nth 0 rrbruby:history)
-                   (format "print %s." rrbruby:region-variable))
+               (or (nth 0 rrbruby:history) (format "print %s." rrbruby:region-variable))
                'rrbruby:history))
 
 (defun rrbruby:escape-for-rubystring (string)
@@ -32,42 +31,41 @@
     (format "# -*- coding: %s -*-" encoding)))
 
 (defun rrbruby:write-script (region expr &optional out)
-  (or out (setq out (rrbruby:get-tempfile "rrbruby")))
-  (write-region (format "%s\n%s='%s'; %s"
+  (or out (setq out (rrbruby:create-tempfile "rrbruby")))
+  (write-region (format "%s\n%s='%s';\n%s"
                         (rrbruby:magick-comment-encoding)
                         rrbruby:region-variable
                         (rrbruby:escape-for-rubystring region) expr) nil out)
   out)
 
-(defun rrbruby:get-tempfile (prefix)
+(defun rrbruby:create-tempfile (prefix)
   (make-temp-name (expand-file-name prefix temporary-file-directory)))
 
-(defun rrbruby:exec-script (start end script stderr onsuccess onerror)
-  (let* ((coding-system-for-read buffer-file-coding-system) ;; for external process output
-         (status (call-process-region start end rrbruby:ruby-command
-                                      t (list t stderr) nil script)))
-    (if (eq status 0) (funcall onsuccess) (funcall onerror))))
-
-(defun rrbruby:restore-on-error (text errbuf)
-  (insert text)
-  (with-current-buffer errbuf
-    (goto-char (point-min))
-    (message (buffer-substring (search-forward ":") (point-max))))
-  (kill-buffer errbuf)
-  )
+(defun rrbruby:exec-script (script onsuccess onerror)
+  (let ((coding-system-for-read buffer-file-coding-system) ;; for external process output
+        (stderr (rrbruby:create-tempfile "rrberr"))
+        (status) (output) (errmsg))
+    (with-temp-buffer
+      (setq status (call-process rrbruby:ruby-command nil (list t stderr) nil script))
+      (setq output (buffer-string)))
+    (if (eq status 0)
+        (funcall onsuccess output)
+      (with-current-buffer (find-file-noselect stderr)
+        (setq errmsg (buffer-string))
+        (kill-buffer))
+      (funcall onerror errmsg))
+    (delete-file stderr)))
 
 (defun replace-region-by-ruby (start end expr)
   (interactive (list (region-beginning) (region-end) (rrbruby:read-string)))
   (unless (executable-find rrbruby:ruby-command) (error "ruby command not found"))
   (let* ((region (buffer-substring start end))
-         (script (rrbruby:write-script region expr))
-         (stderr (rrbruby:get-tempfile "rrberr")))
-    (rrbruby:exec-script start end script stderr
-                         (lambda () (message "rrbruby done!"))
-                         (lambda () (rrbruby:restore-on-error
-                                     region (find-file-noselect stderr))))
-    (delete-file script)
-    (delete-file stderr)))
+         (script (rrbruby:write-script region expr)))
+    (rrbruby:exec-script
+     script
+     (lambda (out) (delete-region start end) (insert out) (message "rrbruby done!"))
+     (lambda (err) (message (substring err (string-match ":" err)))))
+    (delete-file script)))
 
 (defalias 'rrbruby (symbol-function 'replace-region-by-ruby))
 
