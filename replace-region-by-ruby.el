@@ -31,19 +31,16 @@
     (format "# -*- coding: %s -*-" encoding)))
 
 (defun rrbruby:write-script (region expr &optional out)
-  (or out (setq out (rrbruby:create-tempfile "rrbruby")))
+  (or out (setq out (make-temp-name (expand-file-name temporary-file-directory))))
   (write-region (format "%s\n%s='%s';\n%s"
                         (rrbruby:magick-comment-encoding)
                         rrbruby:region-variable
                         (rrbruby:escape-for-rubystring region) expr) nil out)
   out)
 
-(defun rrbruby:create-tempfile (prefix)
-  (make-temp-name (expand-file-name prefix temporary-file-directory)))
-
 (defun rrbruby:exec-script (script onsuccess onerror)
   (let ((coding-system-for-read buffer-file-coding-system) ;; for external process output
-        (stderr (rrbruby:create-tempfile "rrberr"))
+        (stderr (make-temp-name (expand-file-name temporary-file-directory)))
         (status) (output) (errmsg))
     (with-temp-buffer
       (setq status (call-process rrbruby:ruby-command nil (list t stderr) nil script))
