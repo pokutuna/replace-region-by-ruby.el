@@ -6,7 +6,7 @@
 ;; `M-x replace-region-by-ruby` OR `M-x rrbruby`
 ;; input code to replace region by ruby output (via e.g. puts/print)
 ;;
-;: Repository: https://github.com/pokutuna/replace-region-by-ruby.el
+;; Repository: https://github.com/pokutuna/replace-region-by-ruby.el
 
 (defvar rrbruby:ruby-command "ruby"
   "command or path to Ruby interpreter")
@@ -35,8 +35,10 @@
                          ((string-match "shift.jis\\|sjis\\|cp932" coding-system)
                           "shift_jis")
                          ((string-match "utf-8" coding-system)
-                          "utf-8"))))
-    (format "# -*- coding: %s -*-" encoding)))
+                          "utf-8")
+                         (t
+                          nil))))
+    (or (if encoding (format "# -*- coding: %s -*-" encoding)) "")))
 
 (defun rrbruby:write-script (region expr &optional out)
   (or out (setq out (make-temp-name (expand-file-name temporary-file-directory))))
